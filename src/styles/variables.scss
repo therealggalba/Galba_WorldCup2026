@@ -1,0 +1,42 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  --font-heading: 'Outfit', sans-serif;
+  --font-body: 'Plus Jakarta Sans', sans-serif;
+
+  /* Theme Core - Premium Dark Slate/Navy */
+  --bg-app: #030712;
+  --bg-gradient: radial-gradient(circle at 50% 0%, #111827 0%, #030712 100%);
+  --bg-card: rgba(17, 24, 39, 0.45);
+  --bg-card-hover: rgba(31, 41, 55, 0.6);
+  --border-card: rgba(255, 255, 255, 0.08);
+  --border-card-hover: rgba(255, 255, 255, 0.16);
+
+  /* Host Colors Theme */
+  --color-white: #ffffff;
+  --color-usa-blue: #0a2540;
+  --color-usa-red: #d11225;
+  --color-mex-green: #006847;
+  --color-mex-red: #ce1126;
+  --color-can-red: #ff0000;
+  
+  /* UI Colors */
+  --text-primary: #f9fafb;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+  --accent-gold: #fbbf24;
+  --accent-gold-glow: rgba(251, 191, 36, 0.35);
+  
+  /* Spain Core Theme */
+  --spain-red: #e02424;
+  --spain-yellow: #facc15;
+  --spain-gradient: linear-gradient(135deg, #e02424 0%, #b91c1c 50%, #facc15 100%);
+  --spain-glow: 0 0 20px rgba(239, 68, 68, 0.45);
+  --spain-gold-glow: 0 0 20px rgba(250, 204, 21, 0.45);
+
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}

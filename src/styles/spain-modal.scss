@@ -1,0 +1,409 @@
+@use './variables.scss';
+
+.spain-focus-modal-content {
+  max-width: 64rem !important; // max-w-5xl
+  width: 92vw !important;
+  height: 85vh;
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  background-color: rgba(10, 15, 29, 0.95);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px rgba(239, 68, 68, 0.05);
+  overflow: hidden;
+  border-radius: 24px;
+}
+
+.spain-modal-header {
+  position: relative;
+  padding: 24px;
+  background: linear-gradient(to right, #dc2626, #991b1b, #d97706);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .header-title-text {
+    text-align: left;
+  }
+
+  .header-flag {
+    width: 48px;
+    height: 32px;
+    border-radius: 8px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .header-title {
+    font-family: var(--font-heading);
+    font-size: 20px;
+    font-weight: 900;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    letter-spacing: -0.025em;
+
+    @media (min-width: 768px) {
+      font-size: 24px;
+    }
+
+    .icon-flame {
+      width: 24px;
+      height: 24px;
+      color: #facc15;
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      fill: #facc15;
+    }
+  }
+
+  .header-subtitle {
+    font-size: 10px;
+    color: #fef08a;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+
+    @media (min-width: 768px) {
+      font-size: 12px;
+    }
+  }
+
+  .close-modal-btn {
+    padding: 8px;
+    border-radius: 9999px;
+    background-color: rgba(0, 0, 0, 0.2);
+    color: #ffffff;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.4);
+    }
+  }
+}
+
+.spain-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 3px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    &:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+  }
+}
+
+.spain-modal-section-title {
+  font-family: var(--font-heading);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: #f87171;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 8px;
+}
+
+.spain-group-card {
+  background-color: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 16px;
+  border-radius: 24px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.spain-scorers-box {
+  background-color: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 12px;
+  border-radius: 24px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+  }
+}
+
+.spain-scorer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 12px;
+  color: #ffffff;
+
+  .scorer-name {
+    font-weight: 700;
+  }
+}
+
+.spain-scorer-badge {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background-color: rgba(245, 158, 11, 0.25);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: #fde047;
+  font-family: var(--font-heading);
+  font-weight: 900;
+  font-size: 10px;
+}
+
+.spain-match-card {
+  background-color: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 14px;
+  border-radius: 24px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  &.group-match {
+    border-left: 4px solid #dc2626;
+  }
+
+  &.knockout-match {
+    border-left: 4px solid #f59e0b;
+  }
+}
+
+.spain-match-time-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  color: #9ca3af;
+  text-align: left;
+
+  .match-tv-badge {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #34d399;
+    background-color: rgba(16, 185, 129, 0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 700;
+  }
+}
+
+.spain-match-teams-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  .team-block-left {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-align: left;
+  }
+
+  .team-block-right {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    text-align: right;
+  }
+
+  .flag-icon {
+    width: 20px;
+    height: 14px;
+    border-radius: 2px;
+  }
+
+  .team-name-text {
+    font-size: 12px;
+    font-weight: 700;
+    color: #ffffff;
+
+    &.spain-highlight {
+      color: #facc15;
+    }
+  }
+}
+
+.spain-score-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  background-color: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 12px;
+  font-family: var(--font-heading);
+  font-weight: 900;
+  color: #ffffff;
+}
+
+.spain-penalties-badge {
+  font-size: 9px;
+  color: #fbbf24;
+  font-weight: 700;
+  margin-top: 4px;
+  background-color: rgba(251, 191, 36, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.spain-match-scorers-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  font-size: 9px;
+  color: #9ca3af;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 8px;
+  margin-top: 4px;
+
+  .scorers-left {
+    text-align: left;
+    font-weight: 500;
+  }
+
+  .scorers-right {
+    text-align: right;
+    font-weight: 500;
+  }
+
+  .own-goal {
+    color: #f87171;
+  }
+}
+
+.spain-players-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(9, minmax(0, 1fr));
+  }
+}
+
+.spain-player-card {
+  background-color: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(239, 68, 68, 0.1);
+  padding: 12px;
+  border-radius: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+
+  &:hover {
+    border-color: rgba(239, 68, 68, 0.3);
+    transform: scale(1.02);
+  }
+
+  &.gk-card {
+    border-color: rgba(16, 185, 129, 0.2);
+    background-color: rgba(6, 78, 59, 0.2);
+  }
+}
+
+.spain-player-avatar-circle {
+  position: relative;
+  width: 56px; // w-14
+  height: 56px;
+  border-radius: 9999px;
+  background-color: rgba(69, 10, 10, 0.4);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.spain-player-avatar-img {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  object-position: center;
+}
+
+.spain-player-dorsal {
+  font-size: 10px;
+  color: #eab308;
+  font-family: var(--font-heading);
+  font-weight: 900;
+  display: block;
+}
+
+.spain-player-name {
+  font-size: 10px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 90px;
+}
+
+.spain-player-position {
+  font-size: 8px;
+  color: #9ca3af;
+  font-weight: 700;
+  display: block;
+  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
