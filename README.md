@@ -1,73 +1,41 @@
-# React + TypeScript + Vite
+# Mundial 2026 - Editor & Simulador Oficial
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+¡Bienvenido al simulador y editor interactivo del Mundial de Fútbol 2026! Esta aplicación te permite seguir de cerca el desarrollo del torneo más grande del mundo, editar los resultados de los partidos, gestionar las plantillas de los equipos y realizar un seguimiento en tiempo real del goleador del torneo (Pichichi).
 
-Currently, two official plugins are available:
+## ¿Qué puedes hacer en esta aplicación?
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+La plataforma está dividida en varias pestañas intuitivas desde las cuales puedes controlar y simular cada aspecto del torneo:
 
-## React Compiler
+### 1. Inicio (Dashboard)
+El centro de control de tu Mundial. Aquí encontrarás:
+* **Estadísticas Generales**: Número de partidos jugados, goles totales anotados y promedio de goles por partido.
+* **Sección de España**: Un panel interactivo dedicado con el próximo partido de "La Roja", su posición en el grupo y su máximo goleador.
+* **Top Goleadores**: Un resumen con los máximos goleadores en lo que va de torneo.
+* **Celebración del Campeón**: Una sección dorada especial que se activa automáticamente al jugarse la gran final, mostrando al país campeón junto a su bandera y sus estrellas mundiales históricas actualizadas.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 2. Partidos
+El motor de simulación del torneo. En esta pestaña puedes:
+* **Registrar Resultados**: Ingresar los goles de cada selección para cada jornada de la fase de grupos y las fases eliminatorias.
+* **Asignar Goleadores**: Indicar qué jugador anotó cada gol (soporta también el registro de autogoles).
+* **Desempates**: Definir prórrogas o penaltis en caso de empate en la fase eliminatoria para decidir quién avanza.
+* **Modo Corrección de Errores**: Corregir resultados de partidos ya validados si deseas cambiar alguna puntuación.
 
-## Expanding the ESLint configuration
+### 3. Grupos
+Visualiza las clasificaciones de los grupos A al H en tiempo real:
+* **Tabla de Posiciones**: Puntos, Partidos Jugados (PJ), Ganados (PG), Empatados (PE), Perdidos (PP), Goles a Favor (GF), Goles en Contra (GC) y Diferencia de Goles (DG).
+* **Comparativa de Mejores Terceros**: Sección colapsable que calcula automáticamente qué selecciones avanzarán a la siguiente fase como los cuatro mejores terceros.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### 4. Eliminatorias (Bracket)
+El cuadro de la fase final desde Dieciseisavos de Final hasta la Gran Final:
+* **Visualización Dinámica**: Observa cómo avanzan los equipos a lo largo de las rondas a medida que registras los resultados de sus partidos.
+* **Propagación del Ganador**: Al validar un partido de eliminatorias, el ganador se coloca automáticamente en la casilla correspondiente en la siguiente ronda.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### 5. Plantillas
+Gestiona las plantillas oficiales de las 48 selecciones clasificadas:
+* **Visualizar Jugadores**: Consulta la lista de jugadores de cada país con sus dorsales oficiales, posiciones y fotos de perfil.
+* **Editor de Jugadores**: Modifica el nombre de cualquier jugador, edita su posición o personaliza su retrato (subiendo una foto local o usando semillas para avatares de Dicebear).
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+### 6. Goleadores (Pichichi)
+El ranking definitivo de goleadores del torneo:
+* Clasificación completa ordenada de mayor a menor número de goles anotados.
+* Exclusión automática de autogoles de las estadísticas individuales para un cálculo justo del Pichichi.
