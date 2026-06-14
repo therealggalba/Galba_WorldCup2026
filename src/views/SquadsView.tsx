@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { Player } from '../types';
 import { Flag } from '../components/Flag';
-import { Users, Star, Shield, Edit2, X, Check } from 'lucide-react';
+import { Star, Shield, Edit2, X, Check } from 'lucide-react';
 
 interface SquadsViewProps {
   rosters: Record<string, Player[]>;
@@ -16,7 +16,7 @@ interface SquadsViewProps {
 
 export const SquadsView: React.FC<SquadsViewProps> = ({ rosters, updatePlayer }) => {
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const searchQuery = '';
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   
   // Local edit states

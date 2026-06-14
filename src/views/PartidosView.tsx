@@ -485,7 +485,7 @@ export const PartidosView: React.FC<PartidosViewProps> = ({
                     if (phaseKey) {
                       handleValidateBracket(m as BracketMatch, phaseKey);
                     } else {
-                      handleValidate(m);
+                      handleValidate(m as Match);
                     }
                   }}
                   className={`validate-btn ${

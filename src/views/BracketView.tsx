@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { BracketMatch, Player, Standing } from '../types';
 import { Flag } from '../components/Flag';
-import { GitFork, CheckCircle2, Award, Plus, ShieldAlert } from 'lucide-react';
+import { CheckCircle2, Award, Plus, ShieldAlert } from 'lucide-react';
 
 interface BracketViewProps {
   bracket: Record<string, BracketMatch[]>;
