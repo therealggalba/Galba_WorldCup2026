@@ -1,7 +1,6 @@
 import React from 'react';
 import type { ActiveTab } from '../types';
 import { Trophy, Calendar, GitFork, Users, Award, RotateCcw, Lock, Unlock, Table, ArrowLeft } from 'lucide-react';
-import { APP_REGISTRY } from '@galbahub/domain';
 
 interface NavbarProps {
   activeTab: ActiveTab;
@@ -26,8 +25,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   saving,
   syncError
 }) => {
-  const followballApp = APP_REGISTRY.flatMap(cat => cat.apps).find(app => app.id === 'followball');
-  const followballUrl = import.meta.env.DEV ? followballApp?.devUrl : followballApp?.prodUrl;
+  const followballUrl = import.meta.env.DEV ? 'http://localhost:5180' : 'https://followball.galbahub.com';
 
   return (
     <header className="navbar-header">
