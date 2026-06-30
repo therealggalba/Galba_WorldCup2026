@@ -10,6 +10,23 @@ export interface CompetitionState {
   error_correction_mode: boolean;
 }
 
+function cleanNullChars(obj: any): any {
+  if (typeof obj === 'string') {
+    return obj.replace(/\0/g, '').replace(/\\u0000/g, '');
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(cleanNullChars);
+  }
+  if (obj !== null && typeof obj === 'object') {
+    const cleaned: any = {};
+    for (const key of Object.keys(obj)) {
+      cleaned[key] = cleanNullChars(obj[key]);
+    }
+    return cleaned;
+  }
+  return obj;
+}
+
 export const competitionRepository = {
   async getCompetitionState(
     id: string,
@@ -39,7 +56,7 @@ export const competitionRepository = {
 
         const { error: insertError } = await supabase
           .from('competition_states')
-          .insert({
+          .insert(cleanNullChars({
             id,
             matches: initialState.matches,
             bracket: initialState.bracket,
@@ -47,7 +64,7 @@ export const competitionRepository = {
             custom_scorers: initialState.custom_scorers,
             rosters: initialState.rosters,
             error_correction_mode: initialState.error_correction_mode,
-          });
+          }));
 
         if (insertError) {
           console.error('Error creating initial competition state in Supabase:', insertError);
@@ -85,7 +102,7 @@ export const competitionRepository = {
 
     const { error } = await supabase
       .from('competition_states')
-      .update(updateData)
+      .update(cleanNullChars(updateData))
       .eq('id', id);
 
     if (error) {
@@ -113,7 +130,7 @@ export const competitionRepository = {
 
     const { error } = await supabase
       .from('competition_states')
-      .update({
+      .update(cleanNullChars({
         matches: initialState.matches,
         bracket: initialState.bracket,
         third_place_selections: initialState.third_place_selections,
@@ -121,7 +138,7 @@ export const competitionRepository = {
         rosters: initialState.rosters,
         error_correction_mode: initialState.error_correction_mode,
         updated_at: new Date().toISOString(),
-      })
+      }))
       .eq('id', id);
 
     if (error) {
