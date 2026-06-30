@@ -1,7 +1,26 @@
 import React, { useState } from 'react';
 import type { Match, BracketMatch, Player } from '../types';
 import { Flag } from '../components/Flag';
-import { Plus, Trash2, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { Plus, Trash2, CheckCircle2, ShieldAlert, ArrowLeft } from 'lucide-react';
+
+interface GroupedScorer {
+  name: string;
+  count: number;
+  originalIndex: number;
+}
+
+const groupScorersForDisplay = (scorersList: string[]): GroupedScorer[] => {
+  const grouped: GroupedScorer[] = [];
+  scorersList.forEach((name, index) => {
+    const existing = grouped.find(g => g.name === name);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      grouped.push({ name, count: 1, originalIndex: index });
+    }
+  });
+  return grouped;
+};
 
 interface PartidosViewProps {
   matches: Match[];
@@ -42,6 +61,7 @@ export const PartidosView: React.FC<PartidosViewProps> = ({
   const [localScorers1, setLocalScorers1] = useState<Record<string, string[]>>({});
   const [localScorers2, setLocalScorers2] = useState<Record<string, string[]>>({});
   const [editingScorersFor, setEditingScorersFor] = useState<{ matchId: string; team: 1 | 2 } | null>(null);
+  const [showAutogolList, setShowAutogolList] = useState<boolean>(false);
 
   // Initialize local state for a match if not done yet
   const initMatchState = (match: Match | BracketMatch) => {
@@ -413,20 +433,30 @@ export const PartidosView: React.FC<PartidosViewProps> = ({
                       )}
                     </div>
                     <div className="scorers-tags-list">
-                      {mScorers1.map((name, idx) => {
-                        const isOwnGoal = name.endsWith('(A.G.)');
-                        const displayName = name.replace(' (A.G.)', '');
+                      {groupScorersForDisplay(mScorers1).map((g) => {
+                        const isOwnGoal = g.name.endsWith('(A.G.)');
+                        const displayName = g.name.replace(' (A.G.)', '');
                         return (
                           <span
-                            key={idx}
+                            key={g.originalIndex}
                             className={`scorer-tag ${
                               isOwnGoal ? 'own-goal-tag' : ''
                             }`}
                           >
-                            {displayName} {isOwnGoal && <span className="text-[9px] font-bold text-red-400 uppercase">(Autogol)</span>}
+                            {displayName}
+                            {g.count > 1 && (
+                              <span className={`ml-1.5 px-1.5 py-0.2 rounded text-[9px] font-black shadow-sm border uppercase tracking-wider inline-block leading-none ${
+                                isOwnGoal 
+                                  ? 'bg-red-500 text-white border-red-400/30' 
+                                  : 'bg-indigo-600 text-white border-indigo-400/30'
+                              }`}>
+                                x{g.count}
+                              </span>
+                            )}
+                            {isOwnGoal && <span className="text-[9px] font-bold text-red-400 uppercase ml-1">(Autogol)</span>}
                             {!isLocked && (
                               <button
-                                onClick={() => removeScorer(m.id, 1, idx)}
+                                onClick={() => removeScorer(m.id, 1, g.originalIndex)}
                                 className="remove-scorer-btn"
                               >
                                 <Trash2 className="w-2.5 h-2.5" />
@@ -451,20 +481,30 @@ export const PartidosView: React.FC<PartidosViewProps> = ({
                       )}
                     </div>
                     <div className="scorers-tags-list">
-                      {mScorers2.map((name, idx) => {
-                        const isOwnGoal = name.endsWith('(A.G.)');
-                        const displayName = name.replace(' (A.G.)', '');
+                      {groupScorersForDisplay(mScorers2).map((g) => {
+                        const isOwnGoal = g.name.endsWith('(A.G.)');
+                        const displayName = g.name.replace(' (A.G.)', '');
                         return (
                           <span
-                            key={idx}
+                            key={g.originalIndex}
                             className={`scorer-tag ${
                               isOwnGoal ? 'own-goal-tag' : ''
                             }`}
                           >
-                            {displayName} {isOwnGoal && <span className="text-[9px] font-bold text-red-400 uppercase">(Autogol)</span>}
+                            {displayName}
+                            {g.count > 1 && (
+                              <span className={`ml-1.5 px-1.5 py-0.2 rounded text-[9px] font-black shadow-sm border uppercase tracking-wider inline-block leading-none ${
+                                isOwnGoal 
+                                  ? 'bg-red-500 text-white border-red-400/30' 
+                                  : 'bg-indigo-600 text-white border-indigo-400/30'
+                              }`}>
+                                x{g.count}
+                              </span>
+                            )}
+                            {isOwnGoal && <span className="text-[9px] font-bold text-red-400 uppercase ml-1">(Autogol)</span>}
                             {!isLocked && (
                               <button
-                                onClick={() => removeScorer(m.id, 2, idx)}
+                                onClick={() => removeScorer(m.id, 2, g.originalIndex)}
                                 className="remove-scorer-btn"
                               >
                                 <Trash2 className="w-2.5 h-2.5" />
@@ -502,9 +542,9 @@ export const PartidosView: React.FC<PartidosViewProps> = ({
 
       {/* Scorers Selection Modal (Supports both standard players & Own Goals) */}
       {editingScorersFor && (
-        <div className="modal-overlay" onClick={() => setEditingScorersFor(null)}>
+        <div className="modal-overlay" onClick={() => { setEditingScorersFor(null); setShowAutogolList(false); }}>
           <div
-            className="modal-content p-6 animate-fade-in text-left max-w-sm"
+            className="modal-content p-6 animate-fade-in text-left max-w-2xl w-[90%]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center border-b border-white/10 pb-3 mb-4">
@@ -512,14 +552,14 @@ export const PartidosView: React.FC<PartidosViewProps> = ({
                 Asignar Goleador
               </h3>
               <button
-                onClick={() => setEditingScorersFor(null)}
+                onClick={() => { setEditingScorersFor(null); setShowAutogolList(false); }}
                 className="text-gray-400 hover:text-white text-sm"
               >
                 ✕
               </button>
             </div>
 
-            <div className="flex flex-col gap-3 max-h-[50vh] overflow-y-auto pr-1">
+            <div className="flex flex-col gap-3 max-h-[70vh] overflow-y-auto pr-1">
               {(() => {
                 let match: Match | BracketMatch | undefined;
                 if (phaseKey) {
@@ -537,44 +577,76 @@ export const PartidosView: React.FC<PartidosViewProps> = ({
                 const squad = rosters[teamName] || [];
                 const oppSquad = rosters[oppName] || [];
 
+                if (showAutogolList) {
+                  return (
+                    <>
+                      {/* Back button and Own Goals list */}
+                      <button
+                        onClick={() => setShowAutogolList(false)}
+                        className="flex items-center gap-1 text-xs text-indigo-400 font-bold hover:text-indigo-300 transition-all mb-2"
+                      >
+                        <ArrowLeft className="w-3.5 h-3.5" />
+                        <span>Volver a la selección</span>
+                      </button>
+
+                      <div className="text-xs text-red-400 font-bold mb-2 flex items-center gap-1.5 uppercase tracking-wide">
+                        <ShieldAlert className="w-3.5 h-3.5 text-red-400" />
+                        Autogol de {oppName}
+                      </div>
+
+                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 mb-2">
+                        {oppSquad.map((p) => (
+                          <button
+                            key={p.dorsal}
+                            onClick={() => {
+                              addScorer(editingScorersFor.matchId, editingScorersFor.team, p.nombre + ' (A.G.)');
+                              setShowAutogolList(false);
+                              setEditingScorersFor(null);
+                            }}
+                            className="p-2 rounded-xl bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 hover:border-red-500/50 flex flex-col items-center justify-center text-center transition-all min-h-[56px]"
+                          >
+                            <span className="text-[11px] text-red-300 font-extrabold mb-0.5">#{p.dorsal}</span>
+                            <span className="text-[10px] text-red-100/90 font-semibold line-clamp-2 w-full leading-tight">{p.nombre}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  );
+                }
+
                 return (
                   <>
-                    {/* Normal Scorer List */}
+                    {/* Normal Scorer Grid */}
                     <div className="text-xs text-gray-400 font-bold mb-1 flex items-center gap-1.5 uppercase tracking-wide">
                       <Flag team={teamName} className="w-4 h-3" />
                       Goleadores de {teamName}
                     </div>
                     
-                    <div className="flex flex-col gap-1.5 mb-2">
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 mb-2">
                       {squad.map((p) => (
                         <button
                           key={p.dorsal}
-                          onClick={() => addScorer(editingScorersFor.matchId, editingScorersFor.team, p.nombre)}
-                          className="p-2.5 rounded-xl bg-white/5 border border-white/5 hover:bg-indigo-500/10 hover:border-indigo-500/30 text-xs font-semibold text-left text-white flex items-center justify-between transition-all"
+                          onClick={() => {
+                            addScorer(editingScorersFor.matchId, editingScorersFor.team, p.nombre);
+                            setEditingScorersFor(null);
+                          }}
+                          className="p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-indigo-500/20 hover:border-indigo-500/50 flex flex-col items-center justify-center text-center transition-all min-h-[56px]"
                         >
-                          <span>{p.nombre}</span>
-                          <span className="text-[10px] text-gray-400 font-heading">#{p.dorsal}</span>
+                          <span className="text-[11px] text-indigo-300 font-extrabold mb-0.5">#{p.dorsal}</span>
+                          <span className="text-[10px] text-white/90 font-semibold line-clamp-2 w-full leading-tight">{p.nombre}</span>
                         </button>
                       ))}
                     </div>
 
-                    {/* Own Goals Section */}
-                    <div className="text-xs text-red-400 font-bold border-t border-white/5 pt-3 mb-1 flex items-center gap-1.5 uppercase tracking-wide">
-                      <ShieldAlert className="w-3.5 h-3.5 text-red-400" />
-                      Autogol de {oppName}
-                    </div>
-
-                    <div className="flex flex-col gap-1.5 mb-2">
-                      {oppSquad.map((p) => (
-                        <button
-                          key={p.dorsal}
-                          onClick={() => addScorer(editingScorersFor.matchId, editingScorersFor.team, p.nombre + ' (A.G.)')}
-                          className="p-2.5 rounded-xl bg-red-500/5 border border-red-500/10 hover:bg-red-500/15 hover:border-red-500/30 text-xs font-semibold text-left text-red-300 flex items-center justify-between transition-all"
-                        >
-                          <span>{p.nombre} (AUTOGOL)</span>
-                          <span className="text-[10px] text-red-400/70 font-heading">#{p.dorsal}</span>
-                        </button>
-                      ))}
+                    {/* Own Goal button triggering own goal squad list */}
+                    <div className="border-t border-white/5 pt-3 mt-1 flex flex-col gap-2">
+                      <button
+                        onClick={() => setShowAutogolList(true)}
+                        className="w-full p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 hover:border-red-500/40 text-xs font-bold text-red-300 flex items-center justify-center gap-2 transition-all"
+                      >
+                        <ShieldAlert className="w-3.5 h-3.5 text-red-400" />
+                        <span>REGISTRAR AUTOGOL ({oppName})</span>
+                      </button>
                     </div>
 
                     {/* Alternative Custom Scorer input */}
@@ -589,12 +661,13 @@ export const PartidosView: React.FC<PartidosViewProps> = ({
                               editingScorersFor.team,
                               e.currentTarget.value.trim().toUpperCase()
                             );
+                            setEditingScorersFor(null);
                             e.currentTarget.value = '';
                           }
                         }}
-                        className="w-full p-2.5 rounded-xl bg-black/40 border border-white/10 text-xs text-white placeholder-gray-500"
+                        className="text-input w-full p-2.5 rounded-xl bg-black/40 border border-white/10 text-xs text-white placeholder-gray-400"
                       />
-                      <span className="text-[9px] text-gray-500 mt-1 block">Presiona Enter para añadir</span>
+                      <span className="text-[9px] text-gray-400 mt-1 block">Presiona Enter para añadir</span>
                     </div>
                   </>
                 );

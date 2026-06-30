@@ -29,7 +29,10 @@ function App() {
     resetToInitial,
     errorCorrectionMode,
     setErrorCorrectionMode,
-    updatePlayer
+    updatePlayer,
+    loading,
+    saving,
+    syncError
   } = useTournamentState();
 
   const renderActiveView = () => {
@@ -95,6 +98,18 @@ function App() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-app text-white">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+          <h2 className="text-xl font-bold tracking-wider uppercase text-gray-300">Conectando con Supabase...</h2>
+          <p className="text-sm text-gray-500 font-medium">Cargando estado del Mundial 2026</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-app">
       <Navbar
@@ -105,6 +120,8 @@ function App() {
         setIsSpainFocusOpen={setIsSpainFocusOpen}
         errorCorrectionMode={errorCorrectionMode}
         setErrorCorrectionMode={setErrorCorrectionMode}
+        saving={saving}
+        syncError={syncError}
       />
       <main className="flex-1 overflow-x-hidden">
         {renderActiveView()}

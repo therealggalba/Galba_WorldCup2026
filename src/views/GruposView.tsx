@@ -197,8 +197,8 @@ export const GruposView: React.FC<GruposViewProps> = ({
                 <th className="p-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider pl-4">Selección</th>
                 <th className="p-3 text-center w-22 text-xs font-bold text-gray-500 uppercase tracking-wider">Grupo</th>
                 <th className="p-3 text-center w-24 text-xs font-heading font-black text-gray-500 uppercase tracking-wider">Pts</th>
-                <th className="p-3 text-center w-20 text-xs font-bold text-gray-500 uppercase tracking-wider">GF</th>
                 <th className="p-3 text-center w-20 text-xs font-bold text-gray-500 uppercase tracking-wider">DG</th>
+                <th className="p-3 text-center w-20 text-xs font-bold text-gray-500 uppercase tracking-wider">GF</th>
               </tr>
             </thead>
             <tbody>
@@ -235,16 +235,16 @@ export const GruposView: React.FC<GruposViewProps> = ({
                     <td className="p-3.5 text-center text-sm font-semibold text-gray-300">
                       Grupo {t.group}
                     </td>
-                    <td className="p-3.5 text-center text-sm font-bold text-gray-300">
-                      {t.gf}
+                    <td className="p-3.5 text-center text-sm font-heading font-black text-white">
+                      {t.pts}
                     </td>
                     <td className={`p-3.5 text-center text-sm font-bold ${
                       t.dg > 0 ? 'text-emerald-400' : t.dg < 0 ? 'text-red-400' : 'text-gray-400'
                     }`}>
                       {t.dg > 0 ? `+${t.dg}` : t.dg}
                     </td>
-                    <td className={`p-3.5 text-center text-sm font-heading font-black text-white`}>
-                      {t.pts}
+                    <td className="p-3.5 text-center text-sm font-bold text-gray-300">
+                      {t.gf}
                     </td>
                     
                   </tr>

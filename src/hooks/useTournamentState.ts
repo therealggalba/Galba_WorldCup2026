@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { Match, BracketMatch, Standing, GroupStandings, Player, Scorer } from '../types';
 import initialDataRaw from '../../world_cup_data.json';
-
-const STORAGE_KEY = 'world_cup_2026_state';
+import { competitionRepository } from '../infrastructure/competitionRepository';
 
 // Parse raw data from JSON
 const initialData = (initialDataRaw as unknown) as {
@@ -13,27 +12,18 @@ const initialData = (initialDataRaw as unknown) as {
   initial_team_scorers: Record<string, { nombre: string; goles: number }[]>;
 };
 
-const mergeRostersWithInitial = (savedRosters: Record<string, Player[]>): Record<string, Player[]> => {
-  const merged = { ...initialData.rosters };
-  Object.keys(savedRosters).forEach((team) => {
-    if (merged[team]) {
-      merged[team] = merged[team].map((initialPlayer) => {
-        const savedPlayer = savedRosters[team].find((p) => p.dorsal === initialPlayer.dorsal);
-        if (savedPlayer) {
-          return {
-            ...initialPlayer,
-            nombre: savedPlayer.nombre,
-            foto: savedPlayer.foto,
-            posicion: savedPlayer.posicion || initialPlayer.posicion
-          };
-        }
-        return initialPlayer;
-      });
-    } else {
-      merged[team] = savedRosters[team];
-    }
+const sanitizeBracket = (loadedBracket: any): Record<string, BracketMatch[]> => {
+  if (!loadedBracket) return initialData.bracket;
+  const sortedBracket: any = {};
+  Object.keys(initialData.bracket).forEach((phase) => {
+    const initialMatches = (initialData.bracket as any)[phase];
+    const loadedMatches = loadedBracket[phase] || [];
+    sortedBracket[phase] = initialMatches.map((initM: any) => {
+      const found = loadedMatches.find((m: any) => m.id === initM.id);
+      return found ? { ...initM, ...found } : initM;
+    });
   });
-  return merged;
+  return sortedBracket;
 };
 
 export function useTournamentState() {
@@ -47,81 +37,185 @@ export function useTournamentState() {
     F: []
   });
   const [thirdPlaceSelections, setThirdPlaceSelections] = useState<Record<string, string>>({});
-  const [rosters, setRosters] = useState<Record<string, Player[]>>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY + '_rosters');
-      if (saved) return mergeRostersWithInitial(JSON.parse(saved));
-    } catch (e) {
-      console.error('Error loading rosters', e);
-    }
-    return initialData.rosters;
-  });
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY + '_rosters', JSON.stringify(rosters));
-  }, [rosters]);
-  
-  // Custom manual scorers additions state, to track scorers added during match validation
+  const [rosters, setRosters] = useState<Record<string, Player[]>>({});
   const [customScorers, setCustomScorers] = useState<Record<string, Scorer[]>>({});
+  const [errorCorrectionMode, setErrorCorrectionMode] = useState<boolean>(false);
+  
+  // Loading and saving states
+  const [loading, setLoading] = useState<boolean>(true);
+  const [saving, setSaving] = useState<boolean>(false);
+  const [syncError, setSyncError] = useState<boolean>(false);
+  const isFirstRender = useRef(true);
 
-  const [errorCorrectionMode, setErrorCorrectionMode] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem(STORAGE_KEY + '_error_correction') === 'true';
-    } catch {
-      return false;
-    }
-  });
-
+  // 1. Load state from Supabase on init (with automatic localStorage migration and fallback)
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY + '_error_correction', String(errorCorrectionMode));
-  }, [errorCorrectionMode]);
+    let isMounted = true;
+    setLoading(true);
 
-  // 1. Load state from localStorage on init
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setMatches(parsed.matches);
-        setBracket(parsed.bracket);
-        setThirdPlaceSelections(parsed.thirdPlaceSelections || {});
-        setCustomScorers(parsed.customScorers || {});
-        return;
-      } catch (e) {
-        console.error('Error loading saved state, resetting', e);
-      }
-    }
-    // Fallback to initial excel data
-    setMatches(initialData.matches);
-    setBracket(initialData.bracket);
-    setThirdPlaceSelections({});
-    setCustomScorers({});
+    competitionRepository.getCompetitionState('worldcup2026', initialData)
+      .then(async (state) => {
+        if (!isMounted) return;
+
+        let finalState = state;
+        const localSaved = localStorage.getItem('world_cup_2026_state');
+
+        if (localSaved) {
+          try {
+            const parsed = JSON.parse(localSaved);
+            const matchesWithScores = parsed.matches ? parsed.matches.filter((m: any) => m.res1 !== null || m.res2 !== null) : [];
+            const dbMatchesWithScores = state.matches ? state.matches.filter((m: any) => m.res1 !== null || m.res2 !== null) : [];
+
+            // If local storage has results but DB does not, migrate local storage to DB
+            if (matchesWithScores.length > 0 && dbMatchesWithScores.length === 0) {
+              console.log('Migrating local storage tournament state to Supabase...');
+              const localRosters = localStorage.getItem('world_cup_2026_state_rosters');
+              const localError = localStorage.getItem('world_cup_2026_state_error_correction') === 'true';
+
+              finalState = {
+                matches: parsed.matches || state.matches,
+                bracket: parsed.bracket || state.bracket,
+                third_place_selections: parsed.thirdPlaceSelections || state.third_place_selections,
+                custom_scorers: parsed.customScorers || state.custom_scorers,
+                rosters: localRosters ? JSON.parse(localRosters) : state.rosters,
+                error_correction_mode: localError
+              };
+
+              // Perform immediate sync to Supabase
+              await competitionRepository.updateCompetitionState('worldcup2026', finalState);
+            }
+          } catch (e) {
+            console.error('Failed to parse or migrate local storage state:', e);
+          }
+        }
+
+        setMatches(finalState.matches);
+        setBracket(sanitizeBracket(finalState.bracket));
+        setThirdPlaceSelections(finalState.third_place_selections);
+        setCustomScorers(finalState.custom_scorers);
+        setRosters(finalState.rosters);
+        setErrorCorrectionMode(finalState.error_correction_mode);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error('Error loading state from Supabase, attempting localStorage fallback:', err);
+        if (!isMounted) return;
+
+        // Try falling back to localStorage to prevent data loss
+        const localSaved = localStorage.getItem('world_cup_2026_state');
+        if (localSaved) {
+          try {
+            const parsed = JSON.parse(localSaved);
+            const localRosters = localStorage.getItem('world_cup_2026_state_rosters');
+            const localError = localStorage.getItem('world_cup_2026_state_error_correction') === 'true';
+
+            setMatches(parsed.matches || initialData.matches);
+            setBracket(sanitizeBracket(parsed.bracket));
+            setThirdPlaceSelections(parsed.thirdPlaceSelections || {});
+            setCustomScorers(parsed.customScorers || {});
+            setRosters(localRosters ? JSON.parse(localRosters) : initialData.rosters);
+            setErrorCorrectionMode(localError);
+            setLoading(false);
+            return;
+          } catch (e) {
+            console.error('Failed to load fallback localStorage state:', e);
+          }
+        }
+
+        // Final fallback to initial data
+        setMatches(initialData.matches);
+        setBracket(sanitizeBracket(initialData.bracket));
+        setThirdPlaceSelections({});
+        setCustomScorers({});
+        setRosters(initialData.rosters);
+        setErrorCorrectionMode(false);
+        setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  // 2. Save state to localStorage whenever it changes
+  // 2. Save state to Supabase whenever it changes (Debounced)
   useEffect(() => {
-    if (matches.length > 0) {
-      const stateToSave = {
-        matches,
-        bracket,
-        thirdPlaceSelections,
-        customScorers
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+    if (loading) return;
+    
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
     }
-  }, [matches, bracket, thirdPlaceSelections, customScorers]);
 
-  // Reset function to revert to Excel starting point
-  const resetToInitial = () => {
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(STORAGE_KEY + '_error_correction');
-    localStorage.removeItem(STORAGE_KEY + '_rosters');
-    setMatches(initialData.matches);
-    setBracket(initialData.bracket);
-    setThirdPlaceSelections({});
-    setCustomScorers({});
-    setErrorCorrectionMode(false);
-    setRosters(initialData.rosters);
+    const saveState = async () => {
+      setSaving(true);
+      setSyncError(false);
+      try {
+        await competitionRepository.updateCompetitionState('worldcup2026', {
+          matches,
+          bracket,
+          third_place_selections: thirdPlaceSelections,
+          custom_scorers: customScorers,
+          rosters,
+          error_correction_mode: errorCorrectionMode
+        });
+      } catch (err) {
+        console.error('Error updating state in Supabase:', err);
+        setSyncError(true);
+      } finally {
+        setSaving(false);
+        // Write to localStorage as backup/fallback in all cases so the user never loses data!
+        try {
+          const stateToSave = {
+            matches,
+            bracket,
+            thirdPlaceSelections,
+            customScorers
+          };
+          localStorage.setItem('world_cup_2026_state', JSON.stringify(stateToSave));
+          localStorage.setItem('world_cup_2026_state_rosters', JSON.stringify(rosters));
+          localStorage.setItem('world_cup_2026_state_error_correction', String(errorCorrectionMode));
+        } catch (e) {
+          console.error('Failed to save backup to localStorage:', e);
+        }
+      }
+    };
+
+    const timer = setTimeout(saveState, 800);
+    return () => clearTimeout(timer);
+  }, [matches, bracket, thirdPlaceSelections, customScorers, rosters, errorCorrectionMode, loading]);
+
+  // Reset function to revert to Excel starting point in Supabase
+  const resetToInitial = async () => {
+    setSaving(true);
+    setSyncError(false);
+    try {
+      const state = await competitionRepository.resetCompetitionState('worldcup2026', initialData);
+      setMatches(state.matches);
+      setBracket(sanitizeBracket(state.bracket));
+      setThirdPlaceSelections(state.third_place_selections);
+      setCustomScorers(state.custom_scorers);
+      setRosters(state.rosters);
+      setErrorCorrectionMode(state.error_correction_mode);
+
+      // Also reset localStorage
+      localStorage.removeItem('world_cup_2026_state');
+      localStorage.removeItem('world_cup_2026_state_rosters');
+      localStorage.removeItem('world_cup_2026_state_error_correction');
+    } catch (err) {
+      console.error('Error resetting state in Supabase:', err);
+      setSyncError(true);
+      // Fallback reset for local data even if DB reset fails
+      setMatches(initialData.matches);
+      setBracket(sanitizeBracket(initialData.bracket));
+      setThirdPlaceSelections({});
+      setCustomScorers({});
+      setRosters(initialData.rosters);
+      setErrorCorrectionMode(false);
+      localStorage.removeItem('world_cup_2026_state');
+      localStorage.removeItem('world_cup_2026_state_rosters');
+      localStorage.removeItem('world_cup_2026_state_error_correction');
+    } finally {
+      setSaving(false);
+    }
   };
 
   // 3. Dynamic Standings Calculation
@@ -354,11 +448,13 @@ export function useTournamentState() {
     }));
 
     // Round of 16 (R16)
-    // In R16, Match 0 is Winner of R32 Match 0 vs Winner of R32 Match 1, and so on.
+    // Order matches the top-to-bottom layout of the images
     resolved.R16 = bracket.R16.map((m, idx) => {
       const r32Matches = resolved.R32;
-      const t1 = r32Matches[idx * 2] && r32Matches[idx * 2].status === 'played' ? getMatchWinner(r32Matches[idx * 2]) : `Ganador M${idx * 2 + 49}`;
-      const t2 = r32Matches[idx * 2 + 1] && r32Matches[idx * 2 + 1].status === 'played' ? getMatchWinner(r32Matches[idx * 2 + 1]) : `Ganador M${idx * 2 + 50}`;
+      const idx1 = idx * 2;
+      const idx2 = idx * 2 + 1;
+      const t1 = r32Matches[idx1] && r32Matches[idx1].status === 'played' ? getMatchWinner(r32Matches[idx1]) : `G. 1/16 ${idx1 + 1}`;
+      const t2 = r32Matches[idx2] && r32Matches[idx2].status === 'played' ? getMatchWinner(r32Matches[idx2]) : `G. 1/16 ${idx2 + 1}`;
       return {
         ...m,
         equipo1: t1,
@@ -367,10 +463,15 @@ export function useTournamentState() {
     });
 
     // Quarterfinals (QF)
+    // Order matches the top-to-bottom layout of the images
+    const r16IndexToNum = [1, 2, 5, 6, 3, 4, 7, 8];
+
     resolved.QF = bracket.QF.map((m, idx) => {
       const r16Matches = resolved.R16;
-      const t1 = r16Matches[idx * 2] && r16Matches[idx * 2].status === 'played' ? getMatchWinner(r16Matches[idx * 2]) : `Ganador Octavos ${idx * 2 + 1}`;
-      const t2 = r16Matches[idx * 2 + 1] && r16Matches[idx * 2 + 1].status === 'played' ? getMatchWinner(r16Matches[idx * 2 + 1]) : `Ganador Octavos ${idx * 2 + 2}`;
+      const idx1 = idx * 2;
+      const idx2 = idx * 2 + 1;
+      const t1 = r16Matches[idx1] && r16Matches[idx1].status === 'played' ? getMatchWinner(r16Matches[idx1]) : `G. octavos ${r16IndexToNum[idx1]}`;
+      const t2 = r16Matches[idx2] && r16Matches[idx2].status === 'played' ? getMatchWinner(r16Matches[idx2]) : `G. octavos ${r16IndexToNum[idx2]}`;
       return {
         ...m,
         equipo1: t1,
@@ -381,8 +482,10 @@ export function useTournamentState() {
     // Semifinals (SF)
     resolved.SF = bracket.SF.map((m, idx) => {
       const qfMatches = resolved.QF;
-      const t1 = qfMatches[idx * 2] && qfMatches[idx * 2].status === 'played' ? getMatchWinner(qfMatches[idx * 2]) : `Ganador Cuartos ${idx * 2 + 1}`;
-      const t2 = qfMatches[idx * 2 + 1] && qfMatches[idx * 2 + 1].status === 'played' ? getMatchWinner(qfMatches[idx * 2 + 1]) : `Ganador Cuartos ${idx * 2 + 2}`;
+      const idx1 = idx * 2;
+      const idx2 = idx * 2 + 1;
+      const t1 = qfMatches[idx1] && qfMatches[idx1].status === 'played' ? getMatchWinner(qfMatches[idx1]) : `G. cuartos ${idx1 + 1}`;
+      const t2 = qfMatches[idx2] && qfMatches[idx2].status === 'played' ? getMatchWinner(qfMatches[idx2]) : `G. cuartos ${idx2 + 1}`;
       return {
         ...m,
         equipo1: t1,
@@ -401,8 +504,8 @@ export function useTournamentState() {
 
     // Third place
     resolved.TP = bracket.TP.map((m) => {
-      const t1 = sfMatchesResolved[0] && sfMatchesResolved[0].status === 'played' ? getLoser(sfMatchesResolved[0]) : 'Perdedor Semi 1';
-      const t2 = sfMatchesResolved[1] && sfMatchesResolved[1].status === 'played' ? getLoser(sfMatchesResolved[1]) : 'Perdedor Semi 2';
+      const t1 = sfMatchesResolved[0] && sfMatchesResolved[0].status === 'played' ? getLoser(sfMatchesResolved[0]) : 'P. semifinal 1';
+      const t2 = sfMatchesResolved[1] && sfMatchesResolved[1].status === 'played' ? getLoser(sfMatchesResolved[1]) : 'P. semifinal 2';
       return {
         ...m,
         equipo1: t1,
@@ -412,8 +515,8 @@ export function useTournamentState() {
 
     // Final
     resolved.F = bracket.F.map((m) => {
-      const t1 = sfMatchesResolved[0] && sfMatchesResolved[0].status === 'played' ? getMatchWinner(sfMatchesResolved[0]) : 'Ganador Semi 1';
-      const t2 = sfMatchesResolved[1] && sfMatchesResolved[1].status === 'played' ? getMatchWinner(sfMatchesResolved[1]) : 'Ganador Semi 2';
+      const t1 = sfMatchesResolved[0] && sfMatchesResolved[0].status === 'played' ? getMatchWinner(sfMatchesResolved[0]) : 'G. semifinal 1';
+      const t2 = sfMatchesResolved[1] && sfMatchesResolved[1].status === 'played' ? getMatchWinner(sfMatchesResolved[1]) : 'G. semifinal 2';
       return {
         ...m,
         equipo1: t1,
@@ -608,6 +711,9 @@ export function useTournamentState() {
     resetToInitial,
     errorCorrectionMode,
     setErrorCorrectionMode,
-    updatePlayer
+    updatePlayer,
+    loading,
+    saving,
+    syncError
   };
 }

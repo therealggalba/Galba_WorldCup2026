@@ -51,9 +51,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const avgGoals = playedMatches > 0 ? (totalGoals / playedMatches).toFixed(2) : '0.00';
 
   // Spain details
-  const spainMatches = matches.filter(
+  const spainGroupMatches = matches.filter(
     (m) => m.equipo1 === 'ESPAÑA' || m.equipo2 === 'ESPAÑA'
   );
+  const spainBracketMatches = Object.values(bracket || {}).flat().filter(
+    (m) => m.equipo1 === 'ESPAÑA' || m.equipo2 === 'ESPAÑA'
+  );
+  const allSpainMatches = [...spainGroupMatches, ...spainBracketMatches];
+
   const spainGroup = 'H';
   const spainStanding = groupStandings[spainGroup]?.find((t) => t.team === 'ESPAÑA');
   
@@ -61,8 +66,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const spainScorers = scorers.pichichi.filter((s) => s.team === 'ESPAÑA');
   const spainTopScorer = spainScorers.length > 0 ? spainScorers[0] : null;
 
-  // Next match of Spain
-  const nextSpainMatch = spainMatches.find((m) => m.status === 'pending');
+  // Next match of Spain (group + bracket)
+  const nextSpainMatch = allSpainMatches.find((m) => m.status === 'pending');
 
   // Champion details
   const CURRENT_STARS_MAP: Record<string, number> = {
@@ -91,6 +96,111 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const champion = isFinalPlayed ? getWinner(finalMatch) : '';
   const currentStars = champion ? (CURRENT_STARS_MAP[champion.toUpperCase()] || 0) : 0;
   const totalStars = currentStars + 1;
+
+  // Calculate Spain total stats (Group + Bracket)
+  const groupGf = spainStanding ? spainStanding.gf : 0;
+  const bracketGf = spainBracketMatches.reduce((acc, m) => {
+    if (m.status === 'played') {
+      const isEq1 = m.equipo1 === 'ESPAÑA';
+      return acc + (isEq1 ? m.res1 || 0 : m.res2 || 0);
+    }
+    return acc;
+  }, 0);
+  const totalGf = groupGf + bracketGf;
+
+  const groupGc = spainStanding ? spainStanding.gc : 0;
+  const bracketGc = spainBracketMatches.reduce((acc, m) => {
+    if (m.status === 'played') {
+      const isEq1 = m.equipo1 === 'ESPAÑA';
+      return acc + (isEq1 ? m.res2 || 0 : m.res1 || 0);
+    }
+    return acc;
+  }, 0);
+  const totalGc = groupGc + bracketGc;
+
+  let spainPhaseLabel = '-';
+  if (spainStanding) {
+    spainPhaseLabel = `${spainStanding.pos}º Lugar (Grupo)`;
+  }
+
+  if (spainBracketMatches.length > 0) {
+    const phasesOrder = ['R32', 'R16', 'QF', 'SF', 'TP', 'F'];
+    let highestPhase = '';
+    phasesOrder.forEach((phase) => {
+      const hasMatch = (bracket[phase] || []).some(
+        (m) => m.equipo1 === 'ESPAÑA' || m.equipo2 === 'ESPAÑA'
+      );
+      if (hasMatch) {
+        highestPhase = phase;
+      }
+    });
+
+    if (highestPhase) {
+      const phaseNames: Record<string, string> = {
+        R32: '1/16 Final',
+        R16: 'Octavos',
+        QF: 'Cuartos',
+        SF: 'Semifinal',
+        TP: '3º Puesto',
+        F: 'Final'
+      };
+
+      const matchInHighest = (bracket[highestPhase] || []).find(
+        (m) => m.equipo1 === 'ESPAÑA' || m.equipo2 === 'ESPAÑA'
+      );
+
+      if (matchInHighest) {
+        if (matchInHighest.status === 'played') {
+          const winner = getWinner(matchInHighest);
+          const isWinner = winner === 'ESPAÑA';
+          if (highestPhase === 'F') {
+            spainPhaseLabel = isWinner ? '¡CAMPEÓN!' : 'Subcampeón';
+          } else if (highestPhase === 'TP') {
+            spainPhaseLabel = isWinner ? '3º Puesto' : '4º Puesto';
+          } else {
+            spainPhaseLabel = isWinner ? `Ganador ${phaseNames[highestPhase]}` : `Eliminado en ${phaseNames[highestPhase]}`;
+          }
+        } else {
+          spainPhaseLabel = `Clasificado a ${phaseNames[highestPhase]}`;
+        }
+      }
+    }
+  }
+
+  // Get all played matches (Group + Bracket) for Recent section
+  const playedGroupMatches = matches
+    .filter((m) => m.status === 'played')
+    .map((m) => ({
+      ...m,
+      phaseOrGroup: `GRUPO ${m.grupo}`,
+      goles1: null,
+      goles2: null
+    }));
+
+  const bracketPhaseLabels: Record<string, string> = {
+    R32: '1/16 FINAL',
+    R16: 'OCTAVOS DE FINAL',
+    QF: 'CUARTOS DE FINAL',
+    SF: 'SEMIFINALES',
+    TP: 'TERCER PUESTO',
+    F: 'FINAL'
+  };
+
+  const playedBracketMatches: any[] = [];
+  Object.keys(bracket || {}).forEach((phase) => {
+    (bracket[phase] || []).forEach((m) => {
+      if (m.status === 'played') {
+        playedBracketMatches.push({
+          ...m,
+          phaseOrGroup: bracketPhaseLabels[phase] || phase
+        });
+      }
+    });
+  });
+
+  const allPlayedMatches = [...playedGroupMatches, ...playedBracketMatches];
+  const sortedPlayedMatches = allPlayedMatches.sort((a, b) => a.fecha.localeCompare(b.fecha));
+  const recentPlayedMatches = sortedPlayedMatches.slice(-4).reverse();
 
   return (
     <div className="dashboard-container">
@@ -146,8 +256,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="spain-stats-grid">
             <div className="spain-stat-card">
               <span className="stat-label">Clasificación</span>
-              <span className="stat-value gold">
-                {spainStanding ? `${spainStanding.pos}º Lugar` : '-'}
+              <span className="stat-value gold text-sm font-black truncate max-w-full block pt-1.5" title={spainPhaseLabel}>
+                {spainPhaseLabel}
               </span>
             </div>
             <div className="spain-stat-card">
@@ -159,13 +269,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className="spain-stat-card">
               <span className="stat-label">Goles Favor</span>
               <span className="stat-value white">
-                {spainStanding ? spainStanding.gf : 0}
+                {totalGf}
               </span>
             </div>
             <div className="spain-stat-card">
               <span className="stat-label">Goles Contra</span>
               <span className="stat-value white">
-                {spainStanding ? spainStanding.gc : 0}
+                {totalGc}
               </span>
             </div>
             <div className="spain-stat-card">
@@ -182,17 +292,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               {nextSpainMatch ? (
                 <div className="next-match-teams">
                   <span className="next-match-team">
-                    <Flag team={nextSpainMatch.equipo1} className="flag-icon" />
+                    <Flag team={nextSpainMatch.equipo1 || ''} className="flag-icon" />
                     {nextSpainMatch.equipo1}
                   </span>
                   <span className="vs-badge">VS</span>
                   <span className="next-match-team">
-                    <Flag team={nextSpainMatch.equipo2} className="flag-icon" />
+                    <Flag team={nextSpainMatch.equipo2 || ''} className="flag-icon" />
                     {nextSpainMatch.equipo2}
                   </span>
                 </div>
               ) : (
-                <span className="group-completed-label">Grupo completado</span>
+                <span className="group-completed-label">Participación completada</span>
               )}
             </div>
 
@@ -264,37 +374,43 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </h3>
 
           <div className="recent-matches-grid">
-            {matches
-              .filter((m) => m.status === 'played')
-              .slice(-4)
-              .reverse()
-              .map((m) => (
+            {recentPlayedMatches.map((m) => (
                 <div key={m.id} className="recent-match-item">
                   <div className="recent-match-header">
-                    <span className="group-badge">GRUPO {m.grupo}</span>
+                    <span className="group-badge">{m.phaseOrGroup}</span>
                     <span>{m.fecha}</span>
                   </div>
 
                   <div className="recent-matches-teams">
                     <div className="recent-match-team-row">
                       <span className="recent-match-team-name">
-                        <Flag team={m.equipo1} className="flag-icon" />
+                        <Flag team={m.equipo1 || ''} className="flag-icon" />
                         {m.equipo1}
                       </span>
-                      <span className="recent-match-team-score">{m.res1}</span>
+                      <span className="recent-match-team-score">
+                        {m.res1}
+                        {m.goles1 !== null && (
+                          <span className="text-[10px] text-gray-400 ml-1">({m.goles1})</span>
+                        )}
+                      </span>
                     </div>
                     <div className="recent-match-team-row">
                       <span className="recent-match-team-name">
-                        <Flag team={m.equipo2} className="flag-icon" />
+                        <Flag team={m.equipo2 || ''} className="flag-icon" />
                         {m.equipo2}
                       </span>
-                      <span className="recent-match-team-score">{m.res2}</span>
+                      <span className="recent-match-team-score">
+                        {m.res2}
+                        {m.goles2 !== null && (
+                          <span className="text-[10px] text-gray-400 ml-1">({m.goles2})</span>
+                        )}
+                      </span>
                     </div>
                   </div>
                 </div>
               ))}
 
-            {matches.filter((m) => m.status === 'played').length === 0 && (
+            {allPlayedMatches.length === 0 && (
               <span className="no-matches-msg">No hay partidos jugados todavía.</span>
             )}
           </div>

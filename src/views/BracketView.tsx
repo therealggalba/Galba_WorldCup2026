@@ -1,7 +1,26 @@
 import React, { useState } from 'react';
 import type { BracketMatch, Player, Standing } from '../types';
 import { Flag } from '../components/Flag';
-import { CheckCircle2, Award, Plus, ShieldAlert } from 'lucide-react';
+import { CheckCircle2, Award, Plus, ShieldAlert, ArrowLeft } from 'lucide-react';
+
+interface GroupedScorer {
+  name: string;
+  count: number;
+  originalIndex: number;
+}
+
+const groupScorersForDisplay = (scorersList: string[]): GroupedScorer[] => {
+  const grouped: GroupedScorer[] = [];
+  scorersList.forEach((name, index) => {
+    const existing = grouped.find(g => g.name === name);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      grouped.push({ name, count: 1, originalIndex: index });
+    }
+  });
+  return grouped;
+};
 
 interface BracketViewProps {
   bracket: Record<string, BracketMatch[]>;
@@ -37,6 +56,7 @@ export const BracketView: React.FC<BracketViewProps> = ({
   const [localScorers1, setLocalScorers1] = useState<string[]>([]);
   const [localScorers2, setLocalScorers2] = useState<string[]>([]);
   const [editingScorersForTeam, setEditingScorersForTeam] = useState<1 | 2 | null>(null);
+  const [showAutogolList, setShowAutogolList] = useState<boolean>(false);
 
   const openEditModal = (phase: string, match: BracketMatch) => {
     // Check if both teams are resolved (i.e. not empty placeholders)
@@ -398,20 +418,30 @@ export const BracketView: React.FC<BracketViewProps> = ({
                   )}
                 </div>
                 <div className="flex flex-wrap justify-end gap-1">
-                  {localScorers1.map((p, idx) => {
-                    const isOwnGoal = p.endsWith('(A.G.)');
-                    const displayName = p.replace(' (A.G.)', '');
+                  {groupScorersForDisplay(localScorers1).map((g) => {
+                    const isOwnGoal = g.name.endsWith('(A.G.)');
+                    const displayName = g.name.replace(' (A.G.)', '');
                     return (
                       <span
-                        key={idx}
+                        key={g.originalIndex}
                         className={`scorer-tag text-[9px] px-1 py-0.5 text-white ${
                           isOwnGoal ? 'own-goal-tag' : ''
                         }`}
                       >
-                        {displayName} {isOwnGoal && <span className="text-[7px] text-red-400 font-extrabold uppercase">(Autogol)</span>}
+                        {displayName}
+                        {g.count > 1 && (
+                          <span className={`ml-1.5 px-1.5 py-0.2 rounded text-[8px] font-black shadow-sm border uppercase tracking-wider inline-block leading-none ${
+                            isOwnGoal 
+                              ? 'bg-red-500 text-white border-red-400/30' 
+                              : 'bg-indigo-600 text-white border-indigo-400/30'
+                          }`}>
+                            x{g.count}
+                          </span>
+                        )}
+                        {isOwnGoal && <span className="text-[7px] text-red-400 font-extrabold uppercase ml-1">(Autogol)</span>}
                         {!isLocked && (
                           <button
-                            onClick={() => setLocalScorers1(prev => prev.filter((_, i) => i !== idx))}
+                            onClick={() => setLocalScorers1(prev => prev.filter((_, i) => i !== g.originalIndex))}
                             className="ml-1 text-red-400 hover:text-red-300"
                           >
                             ✕
@@ -437,20 +467,30 @@ export const BracketView: React.FC<BracketViewProps> = ({
                   <span className="text-[9px] text-gray-400 font-bold ml-auto">GOLEADORES</span>
                 </div>
                 <div className="flex flex-wrap justify-start gap-1">
-                  {localScorers2.map((p, idx) => {
-                    const isOwnGoal = p.endsWith('(A.G.)');
-                    const displayName = p.replace(' (A.G.)', '');
+                  {groupScorersForDisplay(localScorers2).map((g) => {
+                    const isOwnGoal = g.name.endsWith('(A.G.)');
+                    const displayName = g.name.replace(' (A.G.)', '');
                     return (
                       <span
-                        key={idx}
+                        key={g.originalIndex}
                         className={`scorer-tag text-[9px] px-1 py-0.5 text-white ${
                           isOwnGoal ? 'own-goal-tag' : ''
                         }`}
                       >
-                        {displayName} {isOwnGoal && <span className="text-[7px] text-red-400 font-extrabold uppercase">(Autogol)</span>}
+                        {displayName}
+                        {g.count > 1 && (
+                          <span className={`ml-1.5 px-1.5 py-0.2 rounded text-[8px] font-black shadow-sm border uppercase tracking-wider inline-block leading-none ${
+                            isOwnGoal 
+                              ? 'bg-red-500 text-white border-red-400/30' 
+                              : 'bg-indigo-600 text-white border-indigo-400/30'
+                          }`}>
+                            x{g.count}
+                          </span>
+                        )}
+                        {isOwnGoal && <span className="text-[7px] text-red-400 font-extrabold uppercase ml-1">(Autogol)</span>}
                         {!isLocked && (
                           <button
-                            onClick={() => setLocalScorers2(prev => prev.filter((_, i) => i !== idx))}
+                            onClick={() => setLocalScorers2(prev => prev.filter((_, i) => i !== g.originalIndex))}
                             className="ml-1 text-red-400 hover:text-red-300"
                           >
                             ✕
@@ -484,15 +524,15 @@ export const BracketView: React.FC<BracketViewProps> = ({
       {selectedMatch && editingScorersForTeam && (
         <div className="modal-overlay z-[1100]" onClick={() => setEditingScorersForTeam(null)}>
           <div
-            className="modal-content p-6 animate-fade-in text-left max-w-xs"
+            className="modal-content p-6 animate-fade-in text-left max-w-2xl w-[90%]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center border-b border-white/10 pb-2 mb-3">
               <span className="text-xs font-bold text-gray-300">Añadir Goleador</span>
-              <button onClick={() => setEditingScorersForTeam(null)} className="text-gray-400">✕</button>
+              <button onClick={() => { setEditingScorersForTeam(null); setShowAutogolList(false); }} className="text-gray-400">✕</button>
             </div>
             
-            <div className="flex flex-col gap-2 max-h-[40vh] overflow-y-auto pr-1">
+            <div className="flex flex-col gap-2 max-h-[70vh] overflow-y-auto pr-1">
               {(() => {
                 const team1 = selectedMatch.match.equipo1 || '';
                 const team2 = selectedMatch.match.equipo2 || '';
@@ -503,12 +543,53 @@ export const BracketView: React.FC<BracketViewProps> = ({
                 const squad: Player[] = rosters[teamName] || [];
                 const oppSquad: Player[] = rosters[oppName] || [];
 
+                if (showAutogolList) {
+                  return (
+                    <>
+                      {/* Back button and Own Goals list */}
+                      <button
+                        onClick={() => setShowAutogolList(false)}
+                        className="flex items-center gap-1 text-xs text-indigo-400 font-bold hover:text-indigo-300 transition-all mb-2"
+                      >
+                        <ArrowLeft className="w-3.5 h-3.5" />
+                        <span>Volver a la selección</span>
+                      </button>
+
+                      <div className="text-xs text-red-400 font-bold mb-2 flex items-center gap-1.5 uppercase tracking-wide">
+                        <ShieldAlert className="w-3.5 h-3.5 text-red-400" />
+                        Autogol de {oppName}
+                      </div>
+
+                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 mb-2">
+                        {oppSquad.map((p) => (
+                          <button
+                            key={p.dorsal}
+                            onClick={() => {
+                              if (editingScorersForTeam === 1) {
+                                setLocalScorers1(prev => [...prev, p.nombre + ' (A.G.)']);
+                              } else {
+                                setLocalScorers2(prev => [...prev, p.nombre + ' (A.G.)']);
+                              }
+                              setShowAutogolList(false);
+                              setEditingScorersForTeam(null);
+                            }}
+                            className="p-2 rounded-xl bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 hover:border-red-500/50 flex flex-col items-center justify-center text-center transition-all min-h-[56px]"
+                          >
+                            <span className="text-[11px] text-red-300 font-extrabold mb-0.5">#{p.dorsal}</span>
+                            <span className="text-[10px] text-red-100/90 font-semibold line-clamp-2 w-full leading-tight">{p.nombre}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  );
+                }
+
                 return (
                   <>
                     <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wide">
                       Goleadores de {teamName}
                     </div>
-                    <div className="flex flex-col gap-1 mb-2">
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 mb-2">
                       {squad.map((p: Player) => (
                         <button
                           key={p.dorsal}
@@ -520,36 +601,23 @@ export const BracketView: React.FC<BracketViewProps> = ({
                             }
                             setEditingScorersForTeam(null);
                           }}
-                          className="p-2 bg-white/5 rounded text-xs text-left hover:bg-indigo-500/10 text-white flex justify-between"
+                          className="p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-indigo-500/20 hover:border-indigo-500/50 flex flex-col items-center justify-center text-center transition-all min-h-[56px]"
                         >
-                          <span>{p.nombre}</span>
-                          <span className="text-[9px] text-gray-400">#{p.dorsal}</span>
+                          <span className="text-[11px] text-indigo-300 font-extrabold mb-0.5">#{p.dorsal}</span>
+                          <span className="text-[10px] text-white/90 font-semibold line-clamp-2 w-full leading-tight">{p.nombre}</span>
                         </button>
                       ))}
                     </div>
 
-                    <div className="text-[10px] text-red-400 font-bold border-t border-white/5 pt-2 mt-1 uppercase tracking-wide flex items-center gap-1">
-                      <ShieldAlert className="w-3.5 h-3.5 text-red-400" />
-                      Autogol de {oppName}
-                    </div>
-                    <div className="flex flex-col gap-1 mb-2">
-                      {oppSquad.map((p: Player) => (
-                        <button
-                          key={p.dorsal}
-                          onClick={() => {
-                            if (editingScorersForTeam === 1) {
-                              setLocalScorers1(prev => [...prev, p.nombre + ' (A.G.)']);
-                            } else {
-                              setLocalScorers2(prev => [...prev, p.nombre + ' (A.G.)']);
-                            }
-                            setEditingScorersForTeam(null);
-                          }}
-                          className="p-2 bg-red-500/5 rounded text-xs text-left hover:bg-red-500/15 text-red-300 flex justify-between"
-                        >
-                          <span>{p.nombre} (AUTOGOL)</span>
-                          <span className="text-[9px] text-red-400/70">#{p.dorsal}</span>
-                        </button>
-                      ))}
+                    {/* Own Goal button triggering own goal squad list */}
+                    <div className="border-t border-white/5 pt-3 mt-1 flex flex-col gap-2">
+                      <button
+                        onClick={() => setShowAutogolList(true)}
+                        className="w-full p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 hover:border-red-500/40 text-xs font-bold text-red-300 flex items-center justify-center gap-2 transition-all"
+                      >
+                        <ShieldAlert className="w-3.5 h-3.5 text-red-400" />
+                        <span>REGISTRAR AUTOGOL ({oppName})</span>
+                      </button>
                     </div>
 
                     <div className="border-t border-white/5 pt-2 mt-1">
@@ -567,7 +635,7 @@ export const BracketView: React.FC<BracketViewProps> = ({
                             setEditingScorersForTeam(null);
                           }
                         }}
-                        className="w-full p-2 rounded bg-black/40 border border-white/10 text-xs text-white"
+                        className="text-input w-full p-2.5 rounded-xl bg-black/40 border border-white/10 text-xs text-white placeholder-gray-400"
                       />
                     </div>
                   </>
