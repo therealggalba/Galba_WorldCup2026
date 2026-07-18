@@ -25,7 +25,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   saving,
   syncError
 }) => {
-  const followballUrl = import.meta.env.DEV ? 'http://localhost:5180' : 'https://followball.vercel.app/';
+  const isSPA = !!(window as any).__GALBAHUB_SPA__;
+  const followballUrl = isSPA 
+    ? '/own-apps/followball' 
+    : (import.meta.env.DEV ? 'http://localhost:5180' : 'https://followball.vercel.app/');
 
   return (
     <header className="navbar-header">
