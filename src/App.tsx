@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import './styles/main.scss';
 import { useTournamentState } from './hooks/useTournamentState';
 import type { ActiveTab } from './types';
 import Navbar from './components/Navbar';
